@@ -657,6 +657,7 @@ finish:
             free(*tmp++);
         }
         free(lib->method_table);
+        unlink(lib->name);
         struct JniLibrary *next = lib->next;
         free(lib);
         lib = next;
