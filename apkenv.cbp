@@ -18,6 +18,7 @@
 					<Add option="-DLINKER_DEBUG=2" />
 					<Add option="-DAPKENV_DEBUG" />
 					<Add option="-DAPKENV_GLES" />
+					<Add option="-DDEBUG_TRACE_METHODS" />
 				</Compiler>
 				<Linker>
 					<Add library="GLES_CM" />
@@ -118,6 +119,10 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="compat/pthread_wrappers.h" />
+		<Unit filename="compat/wrappers.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="compat/wrappers.h" />
 		<Unit filename="debug/debug.c">
 			<Option compilerVar="CC" />
 		</Unit>
@@ -144,9 +149,6 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="linker/linker_environ.h" />
-		<Unit filename="linker/linker_format.c">
-			<Option compilerVar="CC" />
-		</Unit>
 		<Unit filename="linker/linker_format.h" />
 		<Unit filename="linker/rt.c">
 			<Option compilerVar="CC" />
@@ -155,6 +157,9 @@
 			<Option compilerVar="CC" />
 		</Unit>
 		<Unit filename="linker/strlcpy.h" />
+		<Unit filename="linker/wrapper_ARM.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="modules/common.h" />
 		<Unit filename="n9xx/platform.c">
 			<Option compilerVar="CC" />

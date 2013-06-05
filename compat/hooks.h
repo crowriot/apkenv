@@ -37,11 +37,17 @@ struct _hook {
   void *func;
 };
 
-void *get_hooked_symbol(const char *sym);
+void *get_hooked_symbol(const char *sym, int dieifpthread);
 int is_lib_builtin(const char *name);
 int is_lib_optional(const char *name);
 void hooks_init(void);
+void hooks_deinit(void);
 
+#ifdef DEBUG_TRACE_METHODS
+#include <stdint.h>
+int is_blacklisted(const char *sym_name);
+void *assemble_wrapper(const char *name, void *func, uint8_t type);
+#endif
 
 #define SIZEOF_SF 0x54 // taken from NDK
 

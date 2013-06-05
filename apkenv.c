@@ -472,6 +472,7 @@ int main(int argc, char **argv)
 
     printf("%s\n%s\n\n", global.apkenv_headline, global.apkenv_copyright);
 
+#if !defined(APKENV_DEBUG)
     switch (argc) {
         case 2:
             /* One argument - the .apk (continue below) */
@@ -484,6 +485,7 @@ int main(int argc, char **argv)
             /* Wrong number of arguments */
             usage();
     }
+#endif
 
     memset(&global_module_hacks,0,sizeof(global_module_hacks));
 
@@ -671,6 +673,8 @@ finish:
         munmap((void *)global.apk_in_mem, global.apk_size);
     close(global.apk_fd);
     apk_close(global.apklib_handle);
+
+    hooks_deinit();
     system_exit();
 
     return 0;

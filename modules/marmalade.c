@@ -178,17 +178,17 @@ struct SupportModulePriv {
 
     struct GlobalState *global;
     struct SupportModule *module;
-   
+
     char *home;
-    
+
     /* LoaderThread is singleton */
     dummy_jobject *theloaderthread;
-    
+
     /* LoaderView and LoaderView::m_Pixels */
     /* hopefully we only need one view so this should be ok */
     dummy_jobject *theview;
     jintArray *pixels;
-    
+
     int marmalade_found;
 };
 
@@ -250,7 +250,7 @@ marmalade_RegisterNatives(JNIEnv* p0, jclass p1, const JNINativeMethod* p2, jint
     int is_loadersmsreceiver = class_is(MARMALADE_LOADERSMSRECEIVER) || class_is(AIRPLAY_LOADERSMSRECEIVER);
     int is_loaderapi = class_is(MARMALADE_LOADERAPI) || class_is(AIRPLAY_LOADERAPI);
     int is_loaderlocation = class_is(MARMALADE_LOADERLOCATION); /* airplay has no loaderlocation */
-    
+
     int i=0;
     const JNINativeMethod *method = p2;
     while (i<p3) {
@@ -456,10 +456,10 @@ static void music_finished(void)
 static int my_soundInit(void)
 {
     MODULE_DEBUG_PRINTF("marmalade initializing audio\n");
-    
+
     // marmalade gives useless values
     int audio_rate = AUDIO_RATE;
-    
+
     Uint16 audio_format = AUDIO_S16SYS;
     int audio_channels = AUDIO_CHANNELS;
     int audio_buffers = AUDIO_CHUKSIZE;
@@ -474,7 +474,7 @@ static int my_soundInit(void)
         MODULE_DEBUG_PRINTF("marmalade: Unable to initialize audio: %s\n", Mix_GetError());
         exit(1);
     }
-        
+
     Mix_AllocateChannels(16);
 
     if(Mix_QuerySpec(&act_audio_rate, &act_audio_format, &act_audio_channels) != 0)
@@ -530,7 +530,7 @@ marmalade_CallIntMethodV(JNIEnv *env, jobject p1, jmethodID p2, va_list p3)
     else if(method_is(soundInit))
     {
         //(IZI)I
-        
+
         // marmalade gives usesless variables:
         //jint audio_rate = va_arg(p3,int);
         //jboolean stereo = va_arg(p3,int); // bool
@@ -538,7 +538,6 @@ marmalade_CallIntMethodV(JNIEnv *env, jobject p1, jmethodID p2, va_list p3)
 
         my_soundInit();
         sound_started = 1;
-        
         return AUDIO_RATE;
     }
     else if(method_is(audioGetNumChannels))
@@ -592,32 +591,44 @@ marmalade_GetObjectClass(JNIEnv *p0, jobject p1)
     return NULL;
 }
 
+#define field_is(fie) (0 == strcmp(((jmethodID)field)->name, #fie))
+
 /* is this correct? */
 jobject
-marmalade_GetObjectField(JNIEnv* p0, jobject p1, jfieldID p2)
+marmalade_GetObjectField(JNIEnv* p0, jobject p1, jfieldID field)
 {
     if(NULL != p1)
     {
-        //if(0 == strcmp(((jmethodID)p2)->name,"m_GL"))
-        //{
-        //TODO
-        //}
-        /*
-        MODULE_DEBUG_PRINTF("marmalade_GetObjectField(%s)\n",((jmethodID)p2)->name);
+        MODULE_DEBUG_PRINTF("marmalade_GetObjectField(%s)\n",((jmethodID)field)->name);
+
+        if(field_is(m_LoaderKeyboard))
+        {
+            // TODO
+        }
+        else if(field_is(m_GL))
+        {
+            // TODO
+        }
+        else if(field_is(m_MediaPlayerManager))
+        {
+            // TODO
+        }
+
         struct dummy_jclass *cls = malloc(sizeof(struct dummy_jclass));
-        cls->name = ((struct dummy_jclass*)((jmethodID)p2)->clazz)->name;
+        cls->name = ((struct dummy_jclass*)((jmethodID)field)->clazz)->name;
 
-        dummy_jobject* obj = malloc(sizeof(dummy_jobject));
+        dummy_jobject* obj = NULL;
+
+        obj = malloc(sizeof(dummy_jobject));
         obj->clazz = cls;
-        obj->field = p2;
+        obj->field = field;
 
-        return obj;*/
+        return obj;
     }
     else
     {
-        MODULE_DEBUG_PRINTF("marmalade_GetObjectField(%s) -> NULL\n",((jmethodID)p2)->name);
+        MODULE_DEBUG_PRINTF("marmalade_GetObjectField(%s) -> NULL\n",((jmethodID)field)->name);
     }
-
     return NULL;
 }
 
@@ -654,7 +665,7 @@ marmalade_GetIntArrayElements(JNIEnv* p0, jintArray p1, jboolean* p2)
         MODULE_DEBUG_PRINTF("marmalade_GetIntArrayElements(%x) -> %x\n",p1,intarr->data);
         return (jint*)intarr->data;
     }
-    
+
     MODULE_DEBUG_PRINTF("marmalade_GetIntArrayElements(NULL) -> NULL\n");
     return NULL;
 }
@@ -668,11 +679,18 @@ marmalade_SetShortArrayRegion(JNIEnv* p0, jshortArray p1, jsize start, jsize len
         memcpy(arr->data + start, p4, len * sizeof(arr->data[0]));
 }
 
+void*
+runOnOSSignal_runner(void *n)
+{
+    marmalade_priv.loaderthread.runOnOSTickNative(ENV(marmalade_priv.global),marmalade_priv.theloaderthread);
+    return NULL;
+}
+
 void
 marmalade_CallVoidMethodV(JNIEnv* env, jobject p1, jmethodID p2, va_list p3)
 {
     jmethodID method = p2;
-    
+
     if(method_is(glReInit))
     {
         MODULE_DEBUG_PRINTF("TODO: implement glReInit\n");
@@ -680,6 +698,16 @@ marmalade_CallVoidMethodV(JNIEnv* env, jobject p1, jmethodID p2, va_list p3)
     else if(method_is(glInit))
     {
         MODULE_DEBUG_PRINTF("TODO: implement glInit\n");
+    }
+    else if(method_is(runOnOSSignal))
+    {
+        // i don't know if this is needed/correct but it looks like it
+        // and does not break anything
+        // TODO: figure out whats correct
+        MODULE_DEBUG_PRINTF("%s::runOnOSSignal\n",((struct dummy_jclass*)p2->clazz)->name);
+
+        pthread_t th;
+        pthread_create(&th,NULL,runOnOSSignal_runner,NULL);
     }
     else if(method_is(glSwapBuffers))
     {
@@ -752,7 +780,7 @@ marmalade_CallVoidMethodV(JNIEnv* env, jobject p1, jmethodID p2, va_list p3)
         GLuint doDraw_tex;
         glGenTextures(1,&doDraw_tex);
         glBindTexture(GL_TEXTURE_2D, doDraw_tex);
-        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR); 
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, marmalade_priv.w, marmalade_priv.h, 0, GL_RGB, GL_UNSIGNED_INT, marmalade_priv.pixels);
         GLfloat vertices[] = {-1, -1, 0,
@@ -778,7 +806,7 @@ jfieldID
 marmalade_GetStaticFieldID(JNIEnv *p0, jclass p1, const char *p2, const char *p3)
 {
     struct dummy_jclass* cls = (struct dummy_jclass*)p1;
-    
+
     if(!strcmp(p2, "SDK_INT") == 0)
     {
         MODULE_DEBUG_PRINTF("marmalade_GetStaticFieldID %s %s %s\n", cls->name, p2, p3);
@@ -798,7 +826,7 @@ marmalade_CallObjectMethodV(JNIEnv *env, jobject p1, jmethodID p2, va_list p3)
 {
     jmethodID method = p2;
     MODULE_DEBUG_PRINTF("marmalade_CallObjectMethodV %x %s\n",p1,p2->name);
-    
+
     if(method_is(getLocale))
     {
         // TODO: actually get the locale
@@ -842,7 +870,7 @@ marmalade_GetStaticIntField(JNIEnv* p0, jclass p1, jfieldID p2)
     {
         MODULE_DEBUG_PRINTF("marmalade_GetStaticIntField(%s)\n",fld->name);
     }
-    
+
     return 0;
 }
 
@@ -866,7 +894,7 @@ marmalade_CallBooleanMethodV(JNIEnv* p0, jobject p1, jmethodID p2, va_list p3)
         // TODO: actually check charger
         return 1;
     }
-    
+
     return 0;
 }
 
@@ -892,9 +920,9 @@ static int
 marmalade_try_init(struct SupportModule *self)
 {
     self->priv->JNI_OnLoad = (jni_onload_t)LOOKUP_M("JNI_OnLoad");
-    
+
     GLOBAL_M->foreach_file("classes.dex",check_marmalade);
-    
+
     self->override_env.RegisterNatives = marmalade_RegisterNatives;
     self->override_env.CallObjectMethodV = marmalade_CallObjectMethodV;
     self->override_env.CallVoidMethodV = marmalade_CallVoidMethodV;
@@ -909,7 +937,7 @@ marmalade_try_init(struct SupportModule *self)
     self->override_env.GetFieldID = marmalade_GetFieldID;
     self->override_env.GetObjectField = marmalade_GetObjectField;
     self->override_env.GetObjectClass = marmalade_GetObjectClass;
-    
+
     return (self->priv->JNI_OnLoad != NULL) && marmalade_priv.marmalade_found;
 }
 
@@ -921,44 +949,38 @@ marmalade_init(struct SupportModule *self, int width, int height, const char *ho
     self->priv->home = strdup(home);
 
     GLOBAL_M->module_hacks->handle_update = 1;
-    
+
     MODULE_DEBUG_PRINTF("JNI_OnLoad\n");
     self->priv->JNI_OnLoad(VM_M, NULL);
     MODULE_DEBUG_PRINTF("JNI_OnLoad done.\n");
-   
+
     self->priv->theloaderthread = malloc(sizeof(dummy_jobject));
-    
+
     MODULE_DEBUG_PRINTF("initNative\n");
     self->priv->loaderthread.initNative(ENV_M,self->priv->theloaderthread);
     MODULE_DEBUG_PRINTF("initNative done.\n");
-    
+
     // TODO: extract files (implement dzip algorithm)
-    
-    // initialize LoaderView and LoaderView::m_Pixels 
-    
+
+    // initialize LoaderView and LoaderView::m_Pixels
+
     self->priv->theview = (dummy_jobject*)malloc(sizeof(dummy_jobject));
     self->priv->theview->clazz = malloc(sizeof(struct dummy_jclass));
     ((struct dummy_jclass*)(self->priv->theview->clazz))->name = MARMALADE_LOADERVIEW;
-    self->priv->theview->field = jnienv_make_field(self->priv->theview->clazz, "theview", "L" MARMALADE_LOADERVIEW ";"); 
- 
+    self->priv->theview->field = jnienv_make_field(self->priv->theview->clazz, "theview", "L" MARMALADE_LOADERVIEW ";");
+
     self->priv->pixels = malloc(sizeof(struct dummy_int_array));
     ((struct dummy_int_array*)self->priv->pixels)->data = (int*)malloc(width*height*sizeof(int));
     ((struct dummy_int_array*)self->priv->pixels)->size = width*height;
-    
+
     MODULE_DEBUG_PRINTF("setViewNative\n");
     self->priv->loaderthread.setViewNative(ENV_M,self->priv->theloaderthread,self->priv->theview);
     MODULE_DEBUG_PRINTF("setViewNative done.\n");
-    
+
     MODULE_DEBUG_PRINTF("setPixelsNative\n");
     self->priv->loaderview.setPixelsNative(ENV_M,self->priv->theview,width,height,self->priv->pixels, 1 /* == newly created */ );
     MODULE_DEBUG_PRINTF("setPixelsNative done.\n");
 
-    /* needed ?
-    MODULE_DEBUG_PRINTF("resumeAppThreads\n");
-    self->priv->loaderthread.resumeAppThreads(ENV_M,self->priv->theloaderthread);
-    MODULE_DEBUG_PRINTF("resumeAppThreads done.\n");
-    */
-    
     MODULE_DEBUG_PRINTF("runNative\n");
     self->priv->loaderthread.runNative(ENV_M,self->priv->theloaderthread,
             GLOBAL_M->env->NewStringUTF(ENV_M,self->priv->home),
@@ -972,26 +994,34 @@ marmalade_init(struct SupportModule *self, int width, int height, const char *ho
 static void
 marmalade_input(struct SupportModule *self, int event, int x, int y, int finger)
 {
-   if(self->priv->loaderthread.onMotionEvent)
-   {
-       int action = 0;
-       if(ACTION_DOWN == event)
-       {
-           action = ACTION_POINTER_1_DOWN;
-       }
-       else if(ACTION_UP == event)
-       {
-           action = ACTION_POINTER_1_UP;
-       }
-       else if(ACTION_MOVE == event)
-       {
-           return; // TODO
-       }
+    if(self->priv->loaderthread.onMotionEvent)
+    {
+        int action = 0;
 
-       MODULE_DEBUG_PRINTF("onMotionEvent: %s\n", action == ACTION_POINTER_1_UP ? "up" : "down");
-       self->priv->loaderthread.onMotionEvent(ENV_M,self->priv->theloaderthread,finger,action-1 /* duh? */, x,y);
-       MODULE_DEBUG_PRINTF("onMotionEvent done.\n");
-   }
+        if(ACTION_DOWN == event)
+        {
+            action = ACTION_POINTER_1_DOWN;
+        }
+        else if(ACTION_UP == event)
+        {
+            action = ACTION_POINTER_1_UP;
+        }
+#if 0
+        if(ACTION_MOVE == event)
+        {
+            MODULE_DEBUG_PRINTF("onMotionEvent: move\n");
+            self->priv->loaderthread.onMotionEvent(ENV_M,self->priv->theloaderthread,finger,2, x,y);
+            self->priv->loaderthread.onMotionEvent(ENV_M,self->priv->theloaderthread,finger,1, x,y);
+            MODULE_DEBUG_PRINTF("onMotionEvent done.\n");
+        }
+        else
+#endif
+        {
+            MODULE_DEBUG_PRINTF("onMotionEvent: %s\n", action == ACTION_POINTER_1_UP ? "up" : "down");
+            self->priv->loaderthread.onMotionEvent(ENV_M,self->priv->theloaderthread,finger,action-1, x,y);
+            MODULE_DEBUG_PRINTF("onMotionEvent done.\n");
+        }
+    }
 }
 
 static void
@@ -999,8 +1029,6 @@ marmalade_key_input(struct SupportModule *self, int event, int keycode, int unic
 {
     self->priv->loaderkeyboard.onKeyEventNative(ENV_M, self->priv->theloaderthread, keycode, unicode, event == ACTION_DOWN);
 }
-
-
 
 /* this function is never called */
 static void

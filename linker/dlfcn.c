@@ -24,6 +24,7 @@
 
 /* for get_hooked_symbol */
 #include "../compat/hooks.h"
+#include "../compat/wrappers.h"
 
 #include "linker_debug.h"
 
@@ -121,7 +122,7 @@ void *android_dlsym(void *handle, const char *symbol)
     }
 
     void *sym_addr;
-    if(0 != (sym_addr = get_hooked_symbol(symbol)))
+    if(0 != (sym_addr = get_hooked_symbol(symbol,1)))
     {
         LINKER_DEBUG_PRINTF("symbol %s hooked to %x\n",symbol,sym_addr);
         pthread_mutex_unlock(&dl_lock);
@@ -154,7 +155,11 @@ void *android_dlsym(void *handle, const char *symbol)
         if(likely((bind == STB_GLOBAL) && (sym->st_shndx != 0))) {
             unsigned ret = sym->st_value + found->base;
             pthread_mutex_unlock(&dl_lock);
+#ifdef DEBUG_TRACE_DYNHOOKS
+            return assemble_wrapper(symbol,(void*)ret,WRAPPER_DYNHOOK);
+#else
             return (void*)ret;
+#endif
         }
 
         set_dlerror(DL_ERR_SYMBOL_NOT_GLOBAL);

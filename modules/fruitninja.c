@@ -33,7 +33,7 @@
  *
  **/
 
-#define MAX_SOUNDS  150
+#define MAX_SOUNDS  300
 
 #include "common.h"
 #include <string.h>
@@ -55,6 +55,7 @@ typedef jboolean (*fruitninja_gamerequestedquit_t)(JNIEnv *env, jobject obj) SOF
 typedef void (*fruitninja_setapplicensed_t)(JNIEnv *env, jobject obj, jboolean value) SOFTFP;
 typedef void (*fruitninja_initfilemanager_t)(JNIEnv *env, jobject obj, jstring paramString1, jstring paramString2, jboolean paramBoolean) SOFTFP;
 typedef void (*fruitninja_initjavasoundmanager_t)(JNIEnv *env, jobject obj) SOFTFP;
+typedef jboolean (*fruitninja_initopenslsoundmanager_t)(JNIEnv* env, jobject obj, jobject asset_manager) SOFTFP;
 
 struct SupportModulePriv {
     jni_onload_t JNI_OnLoad;
@@ -69,6 +70,7 @@ struct SupportModulePriv {
     fruitninja_setapplicensed_t native_setapplicensed;
     fruitninja_initfilemanager_t native_initfilemanager;
     fruitninja_initjavasoundmanager_t native_initjavasoundmanager;
+    fruitninja_initopenslsoundmanager_t native_initopenslsoundmanager;
     jmethodID isNetworkConnected;
     const char *myHome;
 };
@@ -94,6 +96,12 @@ char Music_Path[PATH_MAX];
 void
 load_sound_callback(const char *filename, char *buffer, size_t size)
 {
+    if (SoundCount>=MAX_SOUNDS)
+    {
+        MODULE_DEBUG_PRINTF("module: SoundCount %d exceeding limit\n", ++SoundCount);
+        return;
+    }
+
     char* fname = strrchr (filename, '/') + 1;
     MODULE_DEBUG_PRINTF("module: Load sound: %s\n", fname);
     SFX[SoundCount].name = strdup(fname);
@@ -138,7 +146,7 @@ JNIEnv_CallStaticObjectMethodV(JNIEnv*env, jclass p1, jmethodID p2, va_list p3)
     }
     else
     {
-        MODULE_DEBUG_PRINTF("module_JNIEnv_CallStaticObjectMethodV(%s, %s, %s)\n",
+        MODULE_DEBUG_PRINTF("module: JNIEEnv_CallStaticObjectMethodV(%s, %s, %s)\n",
             jcl->name, p2->name, p2->sig);
     }
 
@@ -180,7 +188,7 @@ JNIEnv_CallStaticVoidMethodV(JNIEnv* p0, jclass p1, jmethodID p2, va_list p3)
 {
     struct dummy_jclass *jcl = p1;
 
-    MODULE_DEBUG_PRINTF("module_JNIEnv_CallStaticVoidMethodV(%x, %s, %s)\n", jcl->name, p2->name, p2->sig);
+    MODULE_DEBUG_PRINTF("module: JNIEEnv_CallStaticVoidMethodV(%x, %s, %s)\n", jcl->name, p2->name, p2->sig);
 
 
     if( strcmp( p2->name, "SongPlay" ) == 0 ) // Play some sweet backround music?
@@ -205,11 +213,15 @@ JNIEnv_CallStaticVoidMethodV(JNIEnv* p0, jclass p1, jmethodID p2, va_list p3)
         music = Mix_LoadMUS( Music_Path );
         Mix_PlayMusic( music, 0 ); // -1 should loop music? Not for me?
         Mix_HookMusicFinished(musicFinished);
-    } else if( strcmp( p2->name, "SetMusicVolume" ) == 0 ){
+    }
+    else
+    if( strcmp( p2->name, "SetMusicVolume" ) == 0 ) {
         int musicvol = va_arg(p3, double) * MIX_MAX_VOLUME;
         MODULE_DEBUG_PRINTF("module: SetMusicVolume: %i\n", musicvol);
         Mix_VolumeMusic(musicvol);
-    } else if( strcmp( p2->name, "SetSFXVolume" ) == 0 ){
+    }
+    else
+    if( strcmp( p2->name, "SetSFXVolume" ) == 0 ) {
         int soundvol = va_arg(p3, double) * MIX_MAX_VOLUME;
         int i;
         MODULE_DEBUG_PRINTF("module: SetSFXVolume: %i\n", soundvol);
@@ -219,7 +231,7 @@ JNIEnv_CallStaticVoidMethodV(JNIEnv* p0, jclass p1, jmethodID p2, va_list p3)
             Mix_VolumeChunk(SFX[i].sound, soundvol);
         }
     } else {
-        MODULE_DEBUG_PRINTF("module_JNIEnv_CallStaticVoidMethodV(%x, %s, %s)\n", jcl->name, p2->name, p2->sig);
+        MODULE_DEBUG_PRINTF("module: JNIEEnv_CallStaticVoidMethodV(%x, %s, %s)\n", jcl->name, p2->name, p2->sig);
     }
 }
 
@@ -227,7 +239,7 @@ JNIEnv_CallStaticVoidMethodV(JNIEnv* p0, jclass p1, jmethodID p2, va_list p3)
 jclass
 JNIEnv_GetObjectClass(JNIEnv* env, jobject p1)
 {
-    MODULE_DEBUG_PRINTF("module_JNIEnv_GetObjectClass(%x, %x)\n", env, p1);
+    MODULE_DEBUG_PRINTF("module: JNIEEnv_GetObjectClass(%x, %x)\n", env, p1);
     struct dummy_jclass *class = malloc(sizeof(struct dummy_jclass));
     class->name = strdup(p1);
     return class;
@@ -236,14 +248,14 @@ jobject
 JNIEnv_NewObjectV(JNIEnv *env, jclass p1, jmethodID p2, va_list p3)
 {
     struct dummy_jclass *clazz = p1;
-    MODULE_DEBUG_PRINTF("JNIEnv_NewObjectV(%x, %s, %s)\n", p1, p2->name, clazz->name);
+    MODULE_DEBUG_PRINTF("module: JNIEnv_NewObjectV(%x, %s, %s)\n", p1, p2->name, clazz->name);
     return NULL;
 }
 jfieldID
 JNIEnv_GetFieldID(JNIEnv* p0, jclass p1, const char* p2, const char* p3)
 {
     struct dummy_jclass *jcl = p1;
-    MODULE_DEBUG_PRINTF("module_JNIEnv_GetFieldID(%s, %s, %s)\n", jcl->name, p2, p3);
+    MODULE_DEBUG_PRINTF("module: JNIEEnv_GetFieldID(%s, %s, %s)\n", jcl->name, p2, p3);
     return 0;
 }
 
@@ -252,7 +264,7 @@ jclass
 JNIEnv_FindClass(JNIEnv* p0, const char* p1)
 {
     if( !strcmp( p1, "com/openfeint/api/OpenFeint" ) == 0 )
-        MODULE_DEBUG_PRINTF("module_JNIEnv_FindClass('%s')\n", p1);
+        MODULE_DEBUG_PRINTF("module: JNIEEnv_FindClass('%s')\n", p1);
     struct dummy_jclass *class = malloc(sizeof(struct dummy_jclass));
     class->name = strdup(p1);
     return class;
@@ -269,7 +281,7 @@ JNIEnv_GetStaticMethodID(JNIEnv* p0, jclass clazz, const char* name, const char*
         }
         return fruitninja_priv.isNetworkConnected;
     }
-    MODULE_DEBUG_PRINTF("module_JNIEnv_GetStaticMethodID(%x, %s, %s)\n", clazz, name, sig);
+    MODULE_DEBUG_PRINTF("module: JNIEEnv_GetStaticMethodID(%x, %s, %s)\n", clazz, name, sig);
     jmethodID id = malloc(sizeof(struct _jmethodID));
     id->clazz = clazz;
     id->name = strdup(name);
@@ -280,29 +292,30 @@ jboolean
 JNIEnv_CallStaticBooleanMethodV(JNIEnv* p0, jclass p1, jmethodID p2, va_list p3)
 {
     //struct dummy_jclass *clazz = (struct dummy_jclass*)p1;
-    if( strcmp( p2->name, "isNetworkConnected" ) != 0 ) {
-        MODULE_DEBUG_PRINTF("module_JNIEnv_CallStaticBooleanMethodV(%x, %s, %s)\n", p2->clazz, p2->name, p2->sig);
-    }
+    if (strcmp(p2->name,"isNetworkConnected")==0) return JNI_FALSE;
+    if (strcmp(p2->name,"SupportsOpenSL")==0) return JNI_TRUE;
+    MODULE_DEBUG_PRINTF("module: JNIEEnv_CallStaticBooleanMethodV(%x, %s, %s)\n", p2->clazz, p2->name, p2->sig);
     return 0;
 }
 jint
 JNIEnv_CallStaticIntMethodV(JNIEnv* p0, jclass p1, jmethodID p2, va_list p3)
 {
-    MODULE_DEBUG_PRINTF("module_JNIEnv_CallStaticIntMethodMethodV(%x, %s, %s)\n", p2->clazz, p2->name, p2->sig);
+    MODULE_DEBUG_PRINTF("module: JNIEEnv_CallStaticIntMethodMethodV(%x, %s, %s)\n", p2->clazz, p2->name, p2->sig);
     if (strcmp(p2->name,"GetWifi")==0) return 0;
     if (strcmp(p2->name,"GetTouchscreenCapabilities")==0) return 0;
+    if (strcmp(p2->name,"GetClientCount")==0) return 0;
     return 0;
 }
 void
 JNIEnv_ExceptionClear(JNIEnv* p0)
 {
-    //MODULE_DEBUG_PRINTF("module_JNIEnv_ExceptionClear()\n");
+    //MODULE_DEBUG_PRINTF("module: JNIEEnv_ExceptionClear()\n");
 }
 
 jthrowable
 JNIEnv_ExceptionOccurred(JNIEnv* p0)
 {
-    //MODULE_DEBUG_PRINTF("module_JNIEnv_ExceptionOccurred()\n");
+    //MODULE_DEBUG_PRINTF("module: JNIEEnv_ExceptionOccurred()\n");
     return NULL;
 }
 
@@ -324,6 +337,7 @@ fruitninja_try_init(struct SupportModule *self)
     self->priv->native_setapplicensed = (fruitninja_setapplicensed_t)LOOKUP_M("_NativeGameLib_native_1SetAppLicensed");
     self->priv->native_initfilemanager = (fruitninja_initfilemanager_t)LOOKUP_M("_NativeGameLib_native_1InitFileManager");
     self->priv->native_initjavasoundmanager = (fruitninja_initjavasoundmanager_t)LOOKUP_M("_NativeGameLib_native_1InitJavaSoundManager");
+    self->priv->native_initopenslsoundmanager = (fruitninja_initopenslsoundmanager_t)LOOKUP_M("_NativeGameLib_native_1InitOpenSLSoundManager");
     self->priv->isNetworkConnected = 0;
 
     /* override for JNIEnv_ */
@@ -378,16 +392,18 @@ fruitninja_init(struct SupportModule *self, int width, int height, const char *h
     /* Extract files */
     global->foreach_file("assets/music", extract_files_callback);
 
-#ifdef PANDORA
-    sync();
-#endif
-
-
     jstring jSource = GLOBAL_M->env->NewStringUTF(ENV_M, global->apk_filename); //APK path & filename
     jstring jHome = GLOBAL_M->env->NewStringUTF(ENV_M, home); // Save file location
     self->priv->native_initfilemanager(ENV_M, GLOBAL_M, jSource, jHome, 0);
-    if (self->priv->native_initjavasoundmanager!=0)
+
+    jboolean useOpenSL = JNI_FALSE;
+    if (self->priv->native_initopenslsoundmanager!=0) {
+        useOpenSL = self->priv->native_initopenslsoundmanager(ENV_M,GLOBAL_M,(jobject)0xF00);
+    }
+    if (!useOpenSL && self->priv->native_initjavasoundmanager!=0) {
         self->priv->native_initjavasoundmanager(ENV_M, GLOBAL_M);
+    }
+
     self->priv->native_init(ENV_M, GLOBAL_M, width, height, GLOBAL_M->env->NewStringUTF(ENV_M, "en"));
     self->priv->native_setapplicensed(ENV_M, GLOBAL_M, 1);
 }

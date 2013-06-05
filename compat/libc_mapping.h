@@ -83,7 +83,7 @@
 {"strftime", strftime},
 {"wcsftime", wcsftime},
 
-{"setlocale", setlocale},
+{"setlocale", my_setlocale},
 
 {"getenv", my_getenv},
 {"geteuid", geteuid},
@@ -122,7 +122,15 @@
 {"inet_ntop", inet_ntop},
 {"inet_pton", inet_pton},
 {"inet_pton", inet_pton},
-
+{"inet_aton", inet_aton},
+{"gethostname", gethostname},
+{"recvmsg", recvmsg},
+{"sendmsg", sendmsg},
+{"recvfrom", recvfrom},
+{"sendto", sendto},
+{"inet_ntoa", inet_ntoa},
+{"socketpair", socketpair},
+    
 {"memrchr", memrchr},
 {"qsort", qsort},
 {"bsearch", bsearch},
@@ -169,7 +177,7 @@
 {"strncat", strncat},
 {"strlen", strlen},
 {"strtod", my_strtod},
-{"strtol", strtol},
+{"strtol", my_strtol},
 {"strtok", strtok},
 {"strncpy", strncpy},
 {"strcmp", strcmp},
@@ -236,4 +244,13 @@
 {"gzopen", gzopen},
 {"gzclose", gzclose},
 {"gzgets", gzgets},
+
+{"gethostbyname", gethostbyname},
+{"__errno", my___errno},
+
+{"mprotect", mprotect},
+{"access", access},
+
+{"bsd_signal", bsd_signal},
+{"clock_getres", clock_getres},
 
