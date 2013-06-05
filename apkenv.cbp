@@ -19,6 +19,7 @@
 					<Add option="-DAPKENV_DEBUG" />
 					<Add option="-DAPKENV_GLES" />
 					<Add option="-DDEBUG_TRACE_METHODS" />
+					<Add option="-DDEBUG_TRACE_INJ_ARM" />
 				</Compiler>
 				<Linker>
 					<Add library="GLES_CM" />
@@ -58,6 +59,7 @@
 		</Build>
 		<Compiler>
 			<Add option="-Wall" />
+			<Add option="-march=armv7-a" />
 			<Add option="-DPANDORA" />
 			<Add option="-DARCH_ARM_HAVE_TLS_REGISTER" />
 		</Compiler>

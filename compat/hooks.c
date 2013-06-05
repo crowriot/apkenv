@@ -139,7 +139,7 @@ void *assemble_wrapper(const char *symbol, void *addr, uint8_t type)
        return addr;
     }
     int helper = 0;
-    //#include "wrapper.instructions"
+    #include "wrapper.instructions"
     // symbols
     ((int32_t*)wrapper_addr)[helper++] = (uint32_t)symbol;
     ((int32_t*)wrapper_addr)[helper++] = (uint32_t)addr;

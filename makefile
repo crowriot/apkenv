@@ -45,6 +45,7 @@ SOURCES += $(DEBUG_SOURCES)
 PANDORA ?= 0
 ifeq ($(PANDORA),1)
 SOURCES += $(PANDORA_SOURCES)
+OBJDUMP = arm-angstrom-linux-gnueabi-objdump
 else
 SOURCES += $(MAEMO_SOURCES)
 endif
@@ -55,8 +56,8 @@ MODULES = $(patsubst modules/%.c,%.apkenv.so,$(MODULES_SOURCES))
 LDFLAGS = -fPIC -ldl -lz -lSDL -lSDL_mixer -pthread -lpng -ljpeg
 
 ifeq ($(PANDORA),1)
-CFLAGS += -DPANDORA -mcpu=cortex-a8 -march=armv7
-LDFLAGS += -lrt
+CFLAGS += -DPANDORA -march=armv7-a
+LDFLAGS += -lrt -march=armv7-a
 endif
 
 # Selection of OpenGL ES version support (if any) to include
@@ -152,18 +153,18 @@ all: $(INJECTION_WRAPPER_TARGETS) $(TARGET) $(MODULES)
 
 compat/wrapper.instructions: compat/wrapper.c
 	@echo -e "\tCC_I_W\t"$@
-	@$(CC) -marm -Wno-unused-function $(I_CFLAGS) -O0 -c -o $(patsubst %.c,%.o,$<) $<
-	@objdump -d $(patsubst %.c,%.o,$<) | ./tools/extract_wrapper_code.sh | ./tools/to_code_32.sh > $(patsubst %.c,%.instructions,$<)
+	@$(CC) -march=armv7-a -Wno-unused-function $(I_CFLAGS) -O0 -c -o $(patsubst %.c,%.o,$<) $<
+	@$(OBJDUMP) -d $(patsubst %.c,%.o,$<) | ./tools/extract_wrapper_code.sh | ./tools/to_code_32.sh > $(patsubst %.c,%.instructions,$<)
 
 linker/wrapper_THUMB.instructions: linker/wrapper_THUMB.c
 	@echo -e "\tCC_I_W\t"$@
 	@$(CC) -mthumb -Wno-unused-function $(I_CFLAGS) -O0 -c -o $(patsubst %.c,%.o,$<) $<
-	@objdump -d $(patsubst %.c,%.o,$<) | ./tools/extract_wrapper_code.sh | ./tools/to_code_16.sh > $(patsubst %.c,%.instructions,$<)
+	@$(OBJDUMP) -d $(patsubst %.c,%.o,$<) | ./tools/extract_wrapper_code.sh | ./tools/to_code_16.sh > $(patsubst %.c,%.instructions,$<)
 
 linker/wrapper_ARM.instructions: linker/wrapper_ARM.c
 	@echo -e "\tCC_I_W\t"$@
-	@$(CC) -marm -Wno-unused-function $(I_CFLAGS) -O0 -c -o $(patsubst %.c,%.o,$<) $<
-	@objdump -d $(patsubst %.c,%.o,$<) | ./tools/extract_wrapper_code.sh | ./tools/to_code_32.sh > $(patsubst %.c,%.instructions,$<)
+	@$(CC) -march=armv7-a -Wno-unused-function $(I_CFLAGS) -O0 -c -o $(patsubst %.c,%.o,$<) $<
+	@$(OBJDUMP) -d $(patsubst %.c,%.o,$<) | ./tools/extract_wrapper_code.sh | ./tools/to_code_32.sh > $(patsubst %.c,%.instructions,$<)
 
 %.o: %.c $(INJECTION_WRAPPER_TARGETS)
 	@echo -e "\tCC\t$@"
