@@ -71,7 +71,7 @@
 {"ferror", ferror},
 
 {"setenv", setenv},
-{"sysconf", sysconf},
+{"sysconf", my_sysconf},
 
 {"getaddrinfo", getaddrinfo},
 {"freeaddrinfo", freeaddrinfo},
@@ -130,7 +130,7 @@
 {"sendto", sendto},
 {"inet_ntoa", inet_ntoa},
 {"socketpair", socketpair},
-    
+
 {"memrchr", memrchr},
 {"qsort", qsort},
 {"bsearch", bsearch},

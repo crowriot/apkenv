@@ -107,6 +107,9 @@
 		</Unit>
 		<Unit filename="compat/hooks.h" />
 		<Unit filename="compat/libc_mapping.h" />
+		<Unit filename="compat/libc_sysconf.c">
+			<Option compilerVar="CC" />
+		</Unit>
 		<Unit filename="compat/libc_wrappers.c">
 			<Option compilerVar="CC" />
 		</Unit>
