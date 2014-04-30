@@ -36,11 +36,11 @@ $(TARGET): $(OBJS)
 
 debug/wrappers/%_thumb.o: debug/wrappers/%_thumb.c
 	$(SILENTMSG) -e "\tCC (TH)\t$@"
-	$(SILENTCMD)$(CC) -mthumb -O0 -c -o $@ $<
+	$(SILENTCMD)$(CC) -mthumb $(MARCH) -O0 -c -o $@ $<
 
 debug/wrappers/%_arm.o: debug/wrappers/%_arm.c
 	$(SILENTMSG) -e "\tCC\t$@"
-	$(SILENTCMD)$(CC) -marm -O0 -c -o $@ $<
+	$(SILENTCMD)$(CC) -marm $(MARCH) -O0 -c -o $@ $<
 
 %.o: %.c
 	$(SILENTMSG) -e "\tCC\t$@"

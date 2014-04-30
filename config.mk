@@ -13,6 +13,9 @@ PREFIX ?= /usr
 # Target platform
 PLATFORM ?= harmattan
 
+# Architecture flag to compile latehook files
+MARCH ?= -march=arm
+
 # Set to 1 for verbose compile output
 V ?= 0
 
@@ -37,7 +40,6 @@ else
     SILENTMSG := @echo
     SILENTCMD := @
 endif
-
 
 # Expose some makefile variables as C macros
 CFLAGS += -DAPKENV_PREFIX=\"$(PREFIX)\"
