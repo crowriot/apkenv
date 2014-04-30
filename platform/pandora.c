@@ -96,13 +96,16 @@ static unsigned char keymap[] = {
 };
 
 
+static void
+pandora_exit();
+
 #define FRAMEBUFFERDEVICE "/dev/fb0"
 
 //
 #define CHK_FREE_RET( chk, ptr, ret ) \
     if ( chk ) { \
         fprintf(stderr,"ERROR: %s at %s(%d)\n",#chk,__FILE__,__LINE__);\
-        platform_exit(); \
+        pandora_exit(); \
         return ret; \
     }
 
